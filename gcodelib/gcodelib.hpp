@@ -24,18 +24,20 @@ public:
         int destinoX = 0;
         int destinoY = 0;
         int lineaOrigen = 0;
+        int tiempoEspera = 10;//ms
         Comando(
             Tipo tipo,
             int lineN = 0
         ){
             this->tipo = tipo;
-            int lineaOrigen = lineN;
+            this->lineaOrigen = lineN;
         }
         Comando(
             Tipo tipo,
             float destinoX = 0,
             float destinoY = 0,
-            int lineaOrigen = 0
+            int lineaOrigen = 0,
+            int tiempoEspera = 0
         ){
             this->tipo = tipo;
             this->destinoX = destinoX;

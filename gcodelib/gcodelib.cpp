@@ -102,6 +102,15 @@ int Gcodelib::cargarArchivo(
 
         }else if(primerToken.compare("01")==0){
             qDebug()<<Q_FUNC_INFO<<"GCode 1"<<linea;
+            buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
+            if(newPotencia!=actualPotencia){
+                comandos.emplace_back(Gcodelib::POWER, newPotencia, lineN+1);
+            }
+            if((newX!=actualX)||(newY!=actualY)){
+                comandos.emplace_back(Gcodelib::MOV, newX, newY, lineN+1, 1000);
+            }
+
+
         }else if(primerToken.compare("02")==0){
             qDebug()<<Q_FUNC_INFO<<"GCode 2"<<linea;
         }else if(primerToken.compare("03")==0){
