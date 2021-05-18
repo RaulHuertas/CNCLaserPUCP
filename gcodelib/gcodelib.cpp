@@ -45,13 +45,14 @@ void buscarEnTokens(
 
 int Gcodelib::cargarArchivo(
     const QString& filename,
-    std::vector<Comando>& comandos
+    std::vector<Comando>& comandos,
+    int& lineN
 ){
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)){
         return 1;
     }
-    int lineN = 0;
+    lineN = 0;
     int ret = 0;
     //Parámetros actuales
     bool modoCoordsRelativo = true;//por defecto se opera en relativo

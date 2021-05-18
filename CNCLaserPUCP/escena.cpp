@@ -9,6 +9,8 @@
 #include <Qt3DExtras/QCuboidMesh>
 #include <Qt3DExtras/QSphereMesh>
 #include <Qt3DExtras/QPhongMaterial>
+#include <Qt3DRender/QBuffer>
+#include <Qt3DRender/QAttribute>
 #include <QCameraLens>
 #include "orbittransformcontroller.hpp"
 #include "qorbitcameracontroller.h"
@@ -37,7 +39,7 @@ Escena::Escena(QWidget *parent)
     auto cuboidMesh = new Qt3DExtras::QCuboidMesh();
     // CuboidMesh Transform
     auto cuboidTransform = new Qt3DCore::QTransform();
-    cuboidTransform->setScale3D(QVector3D(1.2f, 2.3f, 1.0f));
+    cuboidTransform->setScale3D(QVector3D(1.2f, 2.4f, 1.0f));
     cuboidTransform->setTranslation(QVector3D(0.0f, 0.0f, -1.1f));
     auto cuboidMaterial = new Qt3DExtras::QGoochMaterial();
     // assamble entity
@@ -78,11 +80,11 @@ Escena::Escena(QWidget *parent)
     // Set root object of the scene
     view->setRootEntity(rootEntity);
 
-    //    //orbit controller
-    //    Qt3DExtras::QOrbitCameraController *camController = new Qt3DExtras::QOrbitCameraController(rootEntity);
-    //    camController->setLinearSpeed( 50.0f );
-    //    camController->setLookSpeed( 180.0f );
-    //    camController->setCamera(cameraEntity);
+    //orbit controller
+    Qt3DExtras::QOrbitCameraController *camController = new Qt3DExtras::QOrbitCameraController(rootEntity);
+    camController->setLinearSpeed( 50.0f );
+    camController->setLookSpeed( 180.0f );
+    camController->setCamera(cameraEntity);
 
 
 }
@@ -117,8 +119,58 @@ Escena::resizeEvent ( QResizeEvent* ev )
 
 }
 
-void Escena::agregarLinea(QVector3D inicio, QVector3D fin){
+void Escena::agregarLinea(QVector3D inicio, QVector3D fin, int laserPower){
+    //definir geometría
+    auto* geometry = new Qt3DRender::QGeometry(root);
+    QByteArray bufferBytes;
+    bufferBytes.resize(3 * 2 * sizeof(float));
+    float *positions = reinterpret_cast<float*>(bufferBytes.data());
+    *positions++ = inicio.x()-1.2/2.0f;
+    *positions++ = inicio.y()-2.4/2.0f;
+    *positions++ = inicio.z();
+    *positions++ = fin.x()-1.2/2.0f;
+    *positions++ = fin.y()-2.4/2.0f;
+    *positions++ = fin.z();
+    auto *buf = new Qt3DRender::QBuffer(geometry);
+    buf->setData(bufferBytes);
+    auto *positionAttribute = new Qt3DRender::QAttribute(geometry);
+    positionAttribute->setName(Qt3DRender::QAttribute::defaultPositionAttributeName());
+    positionAttribute->setVertexBaseType(Qt3DRender::QAttribute::Float);
+    positionAttribute->setVertexSize(3);
+    positionAttribute->setAttributeType(Qt3DRender::QAttribute::VertexAttribute);
+    positionAttribute->setBuffer(buf);
+    positionAttribute->setByteStride(3 * sizeof(float));
+    positionAttribute->setCount(2);
+    geometry->addAttribute(positionAttribute);
+    //conectar vértices
+    QByteArray indexBytes;
+    indexBytes.resize(2 * sizeof(unsigned int)); // start to end
+    unsigned int *indices = reinterpret_cast<unsigned int*>(indexBytes.data());
+    *indices++ = 0;
+    *indices++ = 1;
+    auto *indexBuffer = new Qt3DRender::QBuffer(geometry);
+    indexBuffer->setData(indexBytes);
+    auto *indexAttribute = new Qt3DRender::QAttribute(geometry);
+    indexAttribute->setVertexBaseType(Qt3DRender::QAttribute::UnsignedInt);
+    indexAttribute->setAttributeType(Qt3DRender::QAttribute::IndexAttribute);
+    indexAttribute->setBuffer(indexBuffer);
+    indexAttribute->setCount(2);
+    geometry->addAttribute(indexAttribute);
+    auto *line = new Qt3DRender::QGeometryRenderer(root);
+    //mesh
+    line->setGeometry(geometry);
+    line->setPrimitiveType(Qt3DRender::QGeometryRenderer::Lines);
+    auto *material = new Qt3DExtras::QPhongMaterial(root);
+    if(laserPower==0){
+        material->setAmbient(QRgb(0x00FF00));
+    }else{
+        material->setAmbient(QRgb(0xFF0000));
+    }
 
+    //entidad
+    auto *lineEntity = new Qt3DCore::QEntity(root);
+    lineEntity->addComponent(line);
+    lineEntity->addComponent(material);
 }
 
 void Escena::addTest(){

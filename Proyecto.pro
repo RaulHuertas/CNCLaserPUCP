@@ -1,9 +1,10 @@
 TEMPLATE = subdirs
 TARGET = Proyecto
 
-SUBDIRS += gcodelib \
-    CNCLaserPUCP
+SUBDIRS += gcodelib
 SUBDIRS += TestGCodeInterpret
-
+SUBDIRS += CNCLaserPUCP
 
 TestGCodeInterpret.depends = gcodelib
+CNCLaserPUCP.depends = gcodelib
+

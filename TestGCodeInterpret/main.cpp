@@ -1,12 +1,13 @@
 #include <QCoreApplication>
-#include "gcodelib.hpp"
 #include <QDebug>
+#include "gcodelib.hpp"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     std::vector<Gcodelib::Comando> cmds;
-    auto ret = Gcodelib::cargarArchivo("Muestra.gcode", cmds);
+    int lineasLeidas = 0;
+    auto ret = Gcodelib::cargarArchivo("Muestra.gcode", cmds, lineasLeidas);
     qDebug()<<"CMDS len: "<<cmds.size();
 
     //return a.exec();

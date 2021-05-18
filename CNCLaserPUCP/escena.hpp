@@ -26,7 +26,7 @@ protected:
 public slots:
     void resizeView(QSize size);
     void addTest();
-    void agregarLinea(QVector3D inicio, QVector3D fin);
+    void agregarLinea(QVector3D inicio, QVector3D fin, int laserPower);
 private:
     Qt3DExtras::Qt3DWindow* view = nullptr;
     Qt3DCore::QEntity* root = nullptr;

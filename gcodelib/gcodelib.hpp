@@ -54,13 +54,22 @@ public:
             this->lineaOrigen = lineaOrigen;
         }
 
+        bool isMovQ()const{
+            return (tipo == Tipo::MOV);
+        }
+
+        bool isLaserQ()const{
+            return (tipo == Tipo::POWER);
+        }
+
     };
 
     Gcodelib();
 
     static int cargarArchivo(
         const QString& filename,
-        std::vector<Comando>& comandos
+        std::vector<Comando>& comandos,
+        int& lineasLeidas
     );
 };
 
