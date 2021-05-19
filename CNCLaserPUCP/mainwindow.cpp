@@ -41,7 +41,7 @@ void MainWindow::agregarMensaje(const QString& msj){
 void MainWindow::cargarArchivo(){
     auto filename = QFileDialog::getOpenFileName(
         this,
-        tr("Cargar instrucciones"), "./", tr("Archivos (*.gcode *.cnc *.g)")
+        tr("Cargar instrucciones"), "./", tr("Archivos (*.gcode *.cnc *.g *.nc)")
     );
     if(filename.size()==0){
         return;
