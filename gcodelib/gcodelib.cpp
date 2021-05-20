@@ -69,6 +69,7 @@ int Gcodelib::cargarArchivo(
     int newY = 0;
     int newPotencia = 0;
     int newSpeed = 0;
+    comandos.emplace_back(Gcodelib::HOME, 0);
     while (!file.atEnd()) {
         QByteArray line = file.readLine();
         QString linea(line);
@@ -85,74 +86,88 @@ int Gcodelib::cargarArchivo(
             lineN++;
             continue;
         }
-        if(!(linea.startsWith("G") || linea.startsWith("M") ) ){
+        auto tokens = linea.split(" ");
+        qDebug()<<Q_FUNC_INFO<<"EVA: "<<linea;
+        auto primerToken = tokens[0];
+        primerToken = primerToken.mid(1);
+        //int comando = 0;
+        if(linea.startsWith("%")||linea.startsWith("(")){
+            //ignorar
+            qDebug()<<Q_FUNC_INFO<<"Líneas mal iniciadas, ignorando"<<linea;
+            lineN++;
+            continue;
+        }
+        else if(linea.startsWith("M")){//linea vacía
+            if(primerToken.compare("30")==0){
+                qDebug()<<Q_FUNC_INFO<<"MCode 30, fin de programa"<<linea;
+                comandos.emplace_back(Gcodelib::POWER, 0, lineN+1);
+                comandos.emplace_back(Gcodelib::MOV, 0, 0, lineN+1);
+            }
+        }else if(linea.startsWith("G")){
+            if(primerToken.compare("00")==0 || primerToken.compare("0")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 0"<<linea;
+                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
+
+                comandos.emplace_back(Gcodelib::POWER, 0, lineN+1);
+                if((newX!=actualX)||(newY!=actualY)){
+                    comandos.emplace_back(Gcodelib::MOV, newX, newY, lineN+1);
+                }
+                if(newPotencia!=actualPotencia){
+                    comandos.emplace_back(Gcodelib::POWER, newPotencia, lineN+1);
+                }else{
+                    comandos.emplace_back(Gcodelib::POWER, actualPotencia, lineN+1);
+                }
+
+            }else if(primerToken.compare("01")==0 || primerToken.compare("1")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 1"<<linea;
+                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
+                if(newPotencia!=actualPotencia){
+                    comandos.emplace_back(Gcodelib::POWER, newPotencia, lineN+1);
+                }
+                if((newX!=actualX)||(newY!=actualY)){
+                    comandos.emplace_back(Gcodelib::MOV, newX, newY, lineN+1, 1000);
+                }
+
+
+            }else if(primerToken.compare("02")==0 || primerToken.compare("2")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 2"<<linea;
+            }else if(primerToken.compare("03")==0 || primerToken.compare("3")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 3"<<linea;
+            }else if(primerToken.compare("17")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 17, seleccioanr plano xy"<<linea;
+            }else if(primerToken.compare("21")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 21"<<linea;
+            }else if(primerToken.compare("28")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 28"<<linea;
+                //HOME
+                comandos.emplace_back(Gcodelib::HOME, lineN+1);
+            }else if(primerToken.compare("41")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 41"<<linea;
+            }else if(primerToken.compare("42")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 42"<<linea;
+            }else if(primerToken.compare("54")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 54"<<linea;
+            }else if(primerToken.compare("90")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 90"<<linea;
+                modoCoordsRelativo = false;
+            }else if(primerToken.compare("91")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 91"<<linea;
+                modoCoordsRelativo = true;
+            }else if(primerToken.compare("94")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 94, mm/min"<<linea;
+                modoCoordsRelativo = true;
+            }else{
+                qDebug()<<Q_FUNC_INFO<<"Comando no interpretable:"<<linea;
+                ret = -2;
+                break;
+            }
+        }else{
             qDebug()<<Q_FUNC_INFO<<"Error, los comandos deben comenzar con G"<<linea;
             file.close();
             ret = -1;
             break;
         }
-        if(linea.startsWith("M")){//linea vacía
-            qDebug()<<Q_FUNC_INFO<<"Omandos M no son váḹidos"<<linea;
-            lineN++;
-            continue;
-        }
-        qDebug()<<Q_FUNC_INFO<<"EVA: "<<linea;
-        auto tokens = linea.split(" ");
-        auto primerToken = tokens[0];
-        primerToken = primerToken.mid(1);
-        int comando = 0;
-        if(primerToken.compare("00")==0 || primerToken.compare("0")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 0"<<linea;
-            buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
 
-            comandos.emplace_back(Gcodelib::POWER, 0, lineN+1);
-            if((newX!=actualX)||(newY!=actualY)){
-                comandos.emplace_back(Gcodelib::MOV, newX, newY, lineN+1);
-            }
-            if(newPotencia!=actualPotencia){
-                comandos.emplace_back(Gcodelib::POWER, newPotencia, lineN+1);
-            }else{
-                comandos.emplace_back(Gcodelib::POWER, actualPotencia, lineN+1);
-            }
-
-        }else if(primerToken.compare("01")==0 || primerToken.compare("1")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 1"<<linea;
-            buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
-            if(newPotencia!=actualPotencia){
-                comandos.emplace_back(Gcodelib::POWER, newPotencia, lineN+1);
-            }
-            if((newX!=actualX)||(newY!=actualY)){
-                comandos.emplace_back(Gcodelib::MOV, newX, newY, lineN+1, 1000);
-            }
-
-
-        }else if(primerToken.compare("02")==0 || primerToken.compare("2")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 2"<<linea;
-        }else if(primerToken.compare("03")==0 || primerToken.compare("3")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 3"<<linea;
-        }else if(primerToken.compare("21")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 21"<<linea;
-        }else if(primerToken.compare("28")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 28"<<linea;
-            //HOME
-            comandos.emplace_back(Gcodelib::HOME, lineN+1);
-        }else if(primerToken.compare("90")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 90"<<linea;
-            modoCoordsRelativo = false;
-        }else if(primerToken.compare("91")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 91"<<linea;
-            modoCoordsRelativo = true;
-        }else if(primerToken.compare("41")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 41"<<linea;
-        }else if(primerToken.compare("42")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 42"<<linea;
-        }else if(primerToken.compare("54")==0){
-            qDebug()<<Q_FUNC_INFO<<"GCode 54"<<linea;
-        }else{
-            qDebug()<<Q_FUNC_INFO<<"Comando no interpretable:"<<linea;
-            ret = -2;
-            break;
-        }
         actualX = newX;
         actualY  = newY;
         actualPotencia = newPotencia;
