@@ -21,6 +21,17 @@
 #include <QGoochMaterial>
 #include <QPushButton>
 
+constexpr float alturaCamara = 6.0f;
+
+void Escena::recargarVista(){
+    if(camera==nullptr){
+        return;
+    }
+    camera->setPosition(QVector3D(0, 0, alturaCamara));
+    camera->setUpVector(QVector3D(0, 1, 0));
+    camera->setViewCenter(QVector3D(0, 0, 0));
+}
+
 Escena::Escena(QWidget *parent)
     : QWidget(parent)
 {
@@ -48,7 +59,7 @@ Escena::Escena(QWidget *parent)
     cuboidEntity->addComponent(cuboidMaterial);
     cuboidEntity->addComponent(cuboidTransform);
 
-    float alturaCamara = 6.0f;
+
     //Luz
     Qt3DCore::QEntity *luz = new Qt3DCore::QEntity(rootEntity);
     Qt3DRender::QPointLight *light = new Qt3DRender::QPointLight(luz);
@@ -66,6 +77,7 @@ Escena::Escena(QWidget *parent)
     // Camera
     //auto camera = new QCamera(rootEntity,view);
     auto cameraEntity = view->camera();
+    camera = cameraEntity;
     cameraEntity->setProjectionType(Qt3DRender::QCameraLens::OrthographicProjection);
     cameraEntity->setPosition(QVector3D(0, 0, alturaCamara));
     cameraEntity->setUpVector(QVector3D(0, 1, 0));

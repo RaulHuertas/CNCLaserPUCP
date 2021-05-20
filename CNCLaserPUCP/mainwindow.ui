@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>996</width>
-    <height>663</height>
+    <width>1157</width>
+    <height>683</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,6 +41,13 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="botonRecargarVista">
+         <property name="text">
+          <string>Recargar  Vista</string>
          </property>
         </widget>
        </item>
@@ -182,7 +189,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>996</width>
+     <width>1157</width>
      <height>22</height>
     </rect>
    </property>

@@ -27,9 +27,11 @@ public slots:
     void resizeView(QSize size);
     void addTest();
     void agregarLinea(QVector3D inicio, QVector3D fin, int laserPower);
+    void recargarVista();
 private:
     Qt3DExtras::Qt3DWindow* view = nullptr;
     Qt3DCore::QEntity* root = nullptr;
+    Qt3DRender::QCamera* camera = nullptr;
 };
 
 #endif // SCENE_H

@@ -25,6 +25,10 @@ MainWindow::MainWindow(QWidget *parent)
         this, &MainWindow::agregarLinea,
         escena, &Escena::agregarLinea
     );
+    connect(
+        ui->botonRecargarVista, &QPushButton::clicked,
+        escena, &Escena::recargarVista
+    );
 }
 
 MainWindow::~MainWindow()
