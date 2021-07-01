@@ -49,6 +49,7 @@ public:
             this->destinoY = destinoY;
             this->lineaOrigen = lineaOrigen;
         }
+
         Comando(
             Tipo tipo,
             float potenciaLaser,

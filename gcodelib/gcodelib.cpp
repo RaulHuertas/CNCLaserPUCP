@@ -2,6 +2,7 @@
 #include <QFile>
 #include <QDebug>
 #include <algorithm>
+#include <cmath>
 
 Gcodelib::Gcodelib()
 {
@@ -11,12 +12,14 @@ Gcodelib::Gcodelib()
 void buscarEnTokens(
     QStringList tokens,
     bool coordRelativeQ,
-    int oldX,
-    int oldY,
+    const int oldX,
+    const int oldY,
     int& newX,
     int& newY,
     int& newPower,
-    int& newSpeed
+    int& newSpeed,
+    int& newCentroX,
+    int& newCentroY
 ){
     for(int t=1; t<tokens.size(); t++){
         auto tok = tokens[t];
@@ -44,6 +47,10 @@ void buscarEnTokens(
             newSpeed = resto.toDouble();
             newSpeed = std::max(newSpeed,0);
             newSpeed = std::min(newSpeed,500);
+        }else if(cmd=='I'){
+            newCentroX = oldX+(resto.toDouble()*10.0);
+        }else if(cmd=='J'){
+            newCentroY = oldY+(resto.toDouble()*10.0);
         }
     }
 }
@@ -69,6 +76,9 @@ int Gcodelib::cargarArchivo(
     int newY = 0;
     int newPotencia = 0;
     int newSpeed = 0;
+    int newCentroX = 0;
+    int newCentroY = 0;
+    bool omitIncreaselineN = false;
     comandos.emplace_back(Gcodelib::HOME, 0);
     while (!file.atEnd()) {
         QByteArray line = file.readLine();
@@ -106,7 +116,7 @@ int Gcodelib::cargarArchivo(
         }else if(linea.startsWith("G")){
             if(primerToken.compare("00")==0 || primerToken.compare("0")==0){
                 qDebug()<<Q_FUNC_INFO<<"GCode 0"<<linea;
-                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
+                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed, newCentroX, newCentroY);
 
                 comandos.emplace_back(Gcodelib::POWER, 0, lineN+1);
                 if((newX!=actualX)||(newY!=actualY)){
@@ -120,7 +130,7 @@ int Gcodelib::cargarArchivo(
 
             }else if(primerToken.compare("01")==0 || primerToken.compare("1")==0){
                 qDebug()<<Q_FUNC_INFO<<"GCode 1"<<linea;
-                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed);
+                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed, newCentroX, newCentroY);
                 if(newPotencia!=actualPotencia){
                     comandos.emplace_back(Gcodelib::POWER, newPotencia, lineN+1);
                 }
@@ -130,9 +140,63 @@ int Gcodelib::cargarArchivo(
 
 
             }else if(primerToken.compare("02")==0 || primerToken.compare("2")==0){
-                qDebug()<<Q_FUNC_INFO<<"GCode 2"<<linea;
+                //Circulo en sentido del reloj
+                qDebug()<<Q_FUNC_INFO<<"GCode 02"<<linea;
+                newCentroX = actualX;
+                newCentroY = actualY;
+                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed, newCentroX, newCentroY);
+                auto distX = newX-newCentroX;
+                auto distY = newY-newCentroY;
+                auto radio = std::sqrt(distX*distX+distY*distY);
+                auto anguloInicial = std::atan2(actualY-newCentroY, actualX-newCentroX);
+                auto anguloFinal = std::atan2(newY-newCentroY, newX-newCentroX);
+                //Como es en sentido del reloj, anguloInicial ha de ser mayor que anguloFinal
+                if(anguloInicial<=anguloFinal){
+                    anguloFinal-=2*M_PI;
+                }
+                auto distanciaTotal = std::abs(radio*(anguloFinal-anguloInicial));
+                long nPuntos = std::ceil(distanciaTotal*2.0);
+                auto pasoAngulo = (anguloFinal-anguloInicial)/nPuntos;
+                auto anguloActual = anguloInicial+pasoAngulo;
+                //GenerarN segmentos de línea
+                for(int j = 0; j<nPuntos; j++){
+                    auto xNuevo = newCentroX+radio*std::cos(anguloActual);
+                    auto YNuevo = newCentroY+radio*std::sin(anguloActual);
+                    comandos.emplace_back(Gcodelib::MOV, xNuevo, YNuevo, lineN+1, 10);
+                    //lineN++;
+                    anguloActual += pasoAngulo;
+                }
+                //omitIncreaselineN = true;
             }else if(primerToken.compare("03")==0 || primerToken.compare("3")==0){
-                qDebug()<<Q_FUNC_INFO<<"GCode 3"<<linea;
+                //Circulo contra el sentido del reloj
+                qDebug()<<Q_FUNC_INFO<<"GCode 02"<<linea;
+                newCentroX = actualX;
+                newCentroY = actualY;
+                buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed, newCentroX, newCentroY);
+                auto distX = newX-newCentroX;
+                auto distY = newY-newCentroY;
+                auto radio = std::sqrt(distX*distX+distY*distY);
+                auto anguloInicial = std::atan2(actualY-newCentroY, actualX-newCentroX);
+                auto anguloFinal = std::atan2(newY-newCentroY, newX-newCentroX);
+                //Como es en contra del sentido del reloj, anguloFinal ha de ser mayor que anguloInicial
+                if(anguloFinal<=anguloInicial){
+                    anguloInicial-=2*M_PI;
+                }
+                auto distanciaTotal = std::abs(radio*(anguloFinal-anguloInicial));
+                long nPuntos = std::ceil(distanciaTotal*2.0);
+                auto pasoAngulo = (anguloFinal-anguloInicial)/nPuntos;
+                auto anguloActual = anguloInicial+pasoAngulo;
+                //GenerarN segmentos de línea
+                for(int j = 0; j<nPuntos; j++){
+                    auto xNuevo = newCentroX+radio*std::cos(anguloActual);
+                    auto YNuevo = newCentroY+radio*std::sin(anguloActual);
+                    comandos.emplace_back(Gcodelib::MOV, xNuevo, YNuevo, lineN+1, 10);
+                    //lineN++;
+                    anguloActual += pasoAngulo;
+                }
+                //omitIncreaselineN = true;
+            }else if(primerToken.compare("03")==0 || primerToken.compare("3")==0){
+                qDebug()<<Q_FUNC_INFO<<"GCode 03"<<linea;
             }else if(primerToken.compare("17")==0){
                 qDebug()<<Q_FUNC_INFO<<"GCode 17, seleccioanr plano xy"<<linea;
             }else if(primerToken.compare("21")==0){
@@ -172,7 +236,10 @@ int Gcodelib::cargarArchivo(
         actualY  = newY;
         actualPotencia = newPotencia;
         actualSpeed = newSpeed;
-        lineN++;
+        if(!omitIncreaselineN){
+            lineN++;
+        }
+        omitIncreaselineN = false;
     }
 
     file.close();
