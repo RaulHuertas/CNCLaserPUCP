@@ -25,6 +25,11 @@ public:
         int destinoY = 0;
         int lineaOrigen = 0;
         int tiempoEspera = 10;//ms
+        int centroX;
+        int centroY;
+        double radio;
+        double anguloInicial;
+        double anguloFinal;
         Comando(
             Tipo tipo,
             int lineN = 0

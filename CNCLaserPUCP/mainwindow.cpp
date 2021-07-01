@@ -78,9 +78,6 @@ void MainWindow::cargarArchivo(){
             }else if(cmd.isLaserQ()){
                 oldLaser = cmd.potenciaLaser;
             }
-
-
-
         }
     }else{
         agregarMensaje("NO FUE POSIBLE INTERPRETAR EL ARCHIVO");
