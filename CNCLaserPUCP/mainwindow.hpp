@@ -23,7 +23,7 @@ private:
     Escena* escena = nullptr;
     void agregarMensaje(const QString& msj);
     std::vector<Gcodelib::Comando> cmds;
-
+    std::vector<Gcodelib::Comando> cmdsTrayectoria;
 public slots:
     void cargarArchivo();
 

@@ -21,15 +21,14 @@ public:
 
         Tipo tipo = Tipo::INICIO;
         float potenciaLaser = 0.0f;
+
+
         int destinoX = 0;
         int destinoY = 0;
         int lineaOrigen = 0;
-        int tiempoEspera = 10;//ms
-        int centroX;
-        int centroY;
-        double radio;
-        double anguloInicial;
-        double anguloFinal;
+        long tiempoEspera = 10;//ms
+
+
         Comando(
             Tipo tipo,
             int lineN = 0
@@ -39,15 +38,32 @@ public:
         }
         Comando(
             Tipo tipo,
-            float destinoX = 0,
-            float destinoY = 0,
-            int lineaOrigen = 0,
-            int tiempoEspera = 0
+            float destinoX,
+            float destinoY,
+            int lineaOrigen,
+            long tiempoEspera = 0
         ){
             this->tipo = tipo;
             this->destinoX = destinoX;
             this->destinoY = destinoY;
             this->lineaOrigen = lineaOrigen;
+            this->tiempoEspera = tiempoEspera;
+        }
+
+        Comando(
+            Tipo tipo,
+            float potenciaLaser,
+            float destinoX,
+            float destinoY,
+            int lineaOrigen,
+            long tiempoEspera
+        ){
+            this->tipo = tipo;
+            this->potenciaLaser = potenciaLaser;
+            this->destinoX = destinoX;
+            this->destinoY = destinoY;
+            this->lineaOrigen = lineaOrigen;
+            this->tiempoEspera = tiempoEspera;
         }
 
         Comando(
@@ -75,7 +91,10 @@ public:
     static int cargarArchivo(
         const QString& filename,
         std::vector<Comando>& comandos,
-        int& lineasLeidas
+        std::vector<Comando>& comandosConTiempo,
+        int& lineasLeidas,
+        double accMax = 10,
+        double vMax = 10
     );
 };
 

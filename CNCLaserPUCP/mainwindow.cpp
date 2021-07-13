@@ -54,7 +54,7 @@ void MainWindow::cargarArchivo(){
     cmds.clear();
     cmds.reserve(1000);
     int lineasLeidas = 0;
-    auto ret = Gcodelib::cargarArchivo(filename, cmds, lineasLeidas);
+    auto ret = Gcodelib::cargarArchivo(filename, cmds, cmdsTrayectoria, lineasLeidas);
     if(cmds.size()>0){
         agregarMensaje(
             QString::number(lineasLeidas)+" líneas leídas"
@@ -62,11 +62,14 @@ void MainWindow::cargarArchivo(){
         agregarMensaje(
             QString::number(cmds.size())+" comandos creados"
         );
+        agregarMensaje(
+            QString::number(cmdsTrayectoria.size())+" puntos de trayecoria creados"
+        );
         float oldX = 0;
         float oldY = 0;
         int oldLaser = 0;
         float escala = 10000.0f;
-        for(const auto& cmd : cmds){
+        for(const auto& cmd : cmdsTrayectoria){
             if(cmd.isMovQ()){
                 emit agregarLinea(
                     QVector3D(oldX/escala, oldY/escala, 0.0f),

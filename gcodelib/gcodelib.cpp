@@ -58,7 +58,10 @@ void buscarEnTokens(
 int Gcodelib::cargarArchivo(
     const QString& filename,
     std::vector<Comando>& comandos,
-    int& lineN
+    std::vector<Comando>& comandosConTiempo,
+    int& lineN,
+    double accMax,
+    double vMax
 ){
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)){
@@ -79,6 +82,7 @@ int Gcodelib::cargarArchivo(
     int newCentroX = 0;
     int newCentroY = 0;
     bool omitIncreaselineN = false;
+    comandos.reserve(100000);
     comandos.emplace_back(Gcodelib::HOME, 0);
     while (!file.atEnd()) {
         QByteArray line = file.readLine();
@@ -141,7 +145,7 @@ int Gcodelib::cargarArchivo(
 
             }else if(primerToken.compare("02")==0 || primerToken.compare("2")==0){
                 //Circulo en sentido del reloj
-                qDebug()<<Q_FUNC_INFO<<"GCode 02"<<linea;
+                //qDebug()<<Q_FUNC_INFO<<"GCode 02"<<linea;
                 newCentroX = actualX;
                 newCentroY = actualY;
                 buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed, newCentroX, newCentroY);
@@ -169,7 +173,7 @@ int Gcodelib::cargarArchivo(
                 //omitIncreaselineN = true;
             }else if(primerToken.compare("03")==0 || primerToken.compare("3")==0){
                 //Circulo contra el sentido del reloj
-                qDebug()<<Q_FUNC_INFO<<"GCode 02"<<linea;
+                //qDebug()<<Q_FUNC_INFO<<"GCode 02"<<linea;
                 newCentroX = actualX;
                 newCentroY = actualY;
                 buscarEnTokens(tokens, modoCoordsRelativo, actualX, actualY, newX, newY, newPotencia, newSpeed, newCentroX, newCentroY);
@@ -243,5 +247,100 @@ int Gcodelib::cargarArchivo(
     }
 
     file.close();
+
+    //Generar trayectoria
+    int puntoAnteriorX = 0;
+    int puntoAnteriorY = 0;
+    for(auto& linea :  comandos){
+        if(linea.tipo!=Gcodelib::MOV){
+            comandosConTiempo.emplace_back(
+                linea.tipo,
+                linea.potenciaLaser,
+                linea.destinoX,
+                linea.destinoY,
+                linea.lineaOrigen,
+                linea.tiempoEspera
+            );
+            continue;
+        }
+        //Si el movimiento es de ambos ejes, limitar la aceleración máxima
+        //y la velocidad
+        if((linea.destinoX!=puntoAnteriorX)&&(linea.destinoY!=puntoAnteriorY)){
+            accMax/=M_SQRT2;
+            vMax/=M_SQRT2;
+        }
+        double distanciaX = (linea.destinoX-puntoAnteriorX);
+        double distanciaY = (linea.destinoY-puntoAnteriorY);
+        double distancia = sqrt(distanciaX*distanciaX+distanciaY*distanciaY);
+        double t1Deseado = vMax/accMax;
+        double t1Calculado = distancia/vMax;
+        double t2Calculado = 0.0;
+        bool casoFullSpeed = false;
+        if(t1Calculado>=t1Deseado){
+            //Sí se puede alcanzar al velocidad final
+            t2Calculado = t1Calculado-t1Deseado;
+            t1Calculado = t1Deseado;
+            casoFullSpeed = true;
+        }else{
+            //No se puede alcanzar la velocidad final
+
+        }
+
+        if(casoFullSpeed){
+            double tiempoAvance = t1Calculado*1000;
+            double tiempoVConstante = t2Calculado*1000;
+            double tiempoFrenado = t1Calculado*1000;
+            double tiempoTotal = tiempoAvance+tiempoVConstante+tiempoFrenado;
+            comandosConTiempo.emplace_back(
+                Gcodelib::MOV,
+                linea.potenciaLaser,
+                puntoAnteriorX+(t1Calculado/tiempoTotal)*distanciaX,
+                puntoAnteriorY+(t1Calculado/tiempoTotal)*distanciaY,
+                linea.lineaOrigen,
+                tiempoAvance
+            );
+            comandosConTiempo.emplace_back(
+                Gcodelib::MOV,
+                linea.potenciaLaser,
+                puntoAnteriorX+((t1Calculado+t2Calculado)/tiempoTotal)*distanciaX,
+                puntoAnteriorY+((t1Calculado+t2Calculado)/tiempoTotal)*distanciaY,
+                linea.lineaOrigen,
+                tiempoVConstante
+            );
+            comandosConTiempo.emplace_back(
+                Gcodelib::MOV,
+                linea.potenciaLaser,
+                linea.destinoX,
+                linea.destinoY,
+                linea.lineaOrigen,
+                tiempoFrenado
+            );
+
+        }else{
+            long tiempoTotal_mitad = 1000.0*sqrt(distancia/accMax);
+            comandosConTiempo.emplace_back(
+                Gcodelib::MOV,
+                linea.potenciaLaser,
+                puntoAnteriorX+(0.5)*distanciaX,
+                puntoAnteriorY+(0.5)*distanciaY,
+                linea.lineaOrigen,
+                tiempoTotal_mitad
+            );
+            comandosConTiempo.emplace_back(
+                Gcodelib::MOV,
+                linea.potenciaLaser,
+                linea.destinoX,
+                linea.destinoY,
+                linea.lineaOrigen,
+                tiempoTotal_mitad
+            );
+
+        }
+        puntoAnteriorX= linea.destinoX;
+        puntoAnteriorY= linea.destinoY;
+
+
+    }
+
     return ret;
 }
